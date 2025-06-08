@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Expense Manager</title>
+    <title>Room Expense Manager with Edit History</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,6 +26,9 @@
         th {
             background-color: #f4f4f4;
         }
+        .hidden {
+            display: none;
+        }
         .action-btn {
             cursor: pointer;
             color: white;
@@ -35,16 +38,25 @@
             border-radius: 5px;
             font-size: 14px;
         }
+        .edit-btn {
+            background-color: #28a745;
+        }
         .delete-btn {
             background-color: #dc3545;
+        }
+        .history {
+            font-size: 14px;
+            color: gray;
         }
     </style>
 </head>
 <body>
     <h1>Room Expense Manager</h1>
+    <label for="username">Your Name:</label>
+    <input type="text" id="username" placeholder="Enter your name">
+    <br>
     <label for="peopleCount">Number of People:</label>
     <input type="number" id="peopleCount" value="3" min="1">
-    <br>
     <h2>Add Item</h2>
     <label for="itemName">Item Name:</label>
     <input type="text" id="itemName" placeholder="e.g., Rice">
@@ -59,6 +71,7 @@
             <tr>
                 <th>Item</th>
                 <th>Cost</th>
+                <th>Added By</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -68,37 +81,93 @@
     <h3>Cost Per Person: ₹<span id="costPerPerson">0</span></h3>
 
     <script>
-        let items = [];
-        let totalCost = 0;
+        let items = JSON.parse(localStorage.getItem("items")) || [];
+        let totalCost = parseFloat(localStorage.getItem("totalCost")) || 0;
 
         function addItem() {
             const itemName = document.getElementById("itemName").value;
             const itemCost = parseFloat(document.getElementById("itemCost").value);
+            const username = document.getElementById("username").value;
             const peopleCount = parseInt(document.getElementById("peopleCount").value);
 
-            if (itemName && itemCost && peopleCount > 0) {
-                items.push({ name: itemName, cost: itemCost });
+            if (itemName && itemCost && username) {
+                const newItem = {
+                    name: itemName,
+                    cost: itemCost,
+                    addedBy: username,
+                    history: [`Added ₹${itemCost} by ${username}`]
+                };
+                items.push(newItem);
                 totalCost += itemCost;
 
+                saveData();
                 updateUI(peopleCount);
+
                 document.getElementById("itemName").value = "";
                 document.getElementById("itemCost").value = "";
             } else {
-                alert("Please fill all fields correctly!");
+                alert("Please fill all fields!");
             }
         }
 
-        function updateUI(peopleCount) {
+        function editItem(index) {
+            const newCost = prompt("Enter the new cost:");
+            if (newCost && !isNaN(newCost)) {
+                const username = document.getElementById("username").value;
+                if (username === items[index].addedBy) {
+                    const oldCost = items[index].cost;
+                    items[index].cost = parseFloat(newCost);
+                    totalCost += items[index].cost - oldCost;
+                    items[index].history.push(`Edited cost from ₹${oldCost} to ₹${newCost} by ${username}`);
+
+                    saveData();
+                    updateUI();
+                } else {
+                    alert("You can only edit items you added!");
+                }
+            } else {
+                alert("Invalid cost entered!");
+            }
+        }
+
+        function deleteItem(index) {
+            const username = document.getElementById("username").value;
+            if (username === items[index].addedBy) {
+                const confirmDelete = confirm("Are you sure you want to delete this item?");
+                if (confirmDelete) {
+                    totalCost -= items[index].cost;
+                    items.splice(index, 1);
+
+                    saveData();
+                    updateUI();
+                }
+            } else {
+                alert("You can only delete items you added!");
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem("items", JSON.stringify(items));
+            localStorage.setItem("totalCost", totalCost.toFixed(2));
+        }
+
+        function updateUI(peopleCount = parseInt(document.getElementById("peopleCount").value)) {
             const itemTable = document.getElementById("itemTable");
             itemTable.innerHTML = "";
 
             items.forEach((item, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>₹${item.cost.toFixed(2)}</td>
                     <td>
-                        <button class="action-btn" onclick="editItem(${index})">Edit</button>
+                        ${item.name}
+                        <div class="history">
+                            ${item.history.join("<br>")}
+                        </div>
+                    </td>
+                    <td>₹${item.cost.toFixed(2)}</td>
+                    <td>${item.addedBy}</td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="editItem(${index})">Edit</button>
                         <button class="action-btn delete-btn" onclick="deleteItem(${index})">Delete</button>
                     </td>
                 `;
@@ -109,39 +178,11 @@
             document.getElementById("costPerPerson").textContent = (totalCost / peopleCount).toFixed(2);
         }
 
-        function editItem(index) {
-            const item = items[index];
-            const newName = prompt("Enter new name:", item.name);
-            const newCost = parseFloat(prompt("Enter new cost:", item.cost));
-
-            if (newName && newCost) {
-                totalCost -= item.cost;
-                items[index].name = newName;
-                items[index].cost = newCost;
-                totalCost += newCost;
-
-                const peopleCount = parseInt(document.getElementById("peopleCount").value);
-                updateUI(peopleCount);
-            } else {
-                alert("Invalid input!");
-            }
-        }
-
-        function deleteItem(index) {
-            const item = items[index];
-            totalCost -= item.cost;
-            items.splice(index, 1);
-
-            const peopleCount = parseInt(document.getElementById("peopleCount").value);
-            updateUI(peopleCount);
-        }
-
         document.getElementById("peopleCount").addEventListener("input", () => {
-            const peopleCount = parseInt(document.getElementById("peopleCount").value);
-            if (peopleCount > 0) {
-                updateUI(peopleCount);
-            }
+            updateUI();
         });
+
+        updateUI();
     </script>
 </body>
 </html>
