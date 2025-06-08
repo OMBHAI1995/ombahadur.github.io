@@ -3,84 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Expense Manager with Edit History</title>
+    <title>Room Expense Manager with Password</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+        }
+        #mainContent {
+            display: none;
         }
         input, button {
             margin: 10px 0;
             padding: 10px;
             font-size: 16px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
         .hidden {
             display: none;
-        }
-        .action-btn {
-            cursor: pointer;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        .edit-btn {
-            background-color: #28a745;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-        }
-        .history {
-            font-size: 14px;
-            color: gray;
         }
     </style>
 </head>
 <body>
-    <h1>Room Expense Manager</h1>
-    <label for="username">Your Name:</label>
-    <input type="text" id="username" placeholder="Enter your name">
-    <br>
-    <label for="peopleCount">Number of People:</label>
-    <input type="number" id="peopleCount" value="3" min="1">
-    <h2>Add Item</h2>
-    <label for="itemName">Item Name:</label>
-    <input type="text" id="itemName" placeholder="e.g., Rice">
-    <br>
-    <label for="itemCost">Cost:</label>
-    <input type="number" id="itemCost" placeholder="e.g., 500">
-    <br>
-    <button onclick="addItem()">Add Item</button>
-    <h2>Items</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Cost</th>
-                <th>Added By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="itemTable"></tbody>
-    </table>
-    <h3>Total Cost: ₹<span id="totalCost">0</span></h3>
-    <h3>Cost Per Person: ₹<span id="costPerPerson">0</span></h3>
+    <!-- Password Section -->
+    <div id="passwordSection">
+        <h1>Enter Password to Access</h1>
+        <input type="password" id="passwordInput" placeholder="Enter Password">
+        <button onclick="checkPassword()">Submit</button>
+        <p id="errorMessage" style="color: red; display: none;">Incorrect password! Please try again.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent">
+        <h1>Room Expense Manager</h1>
+        <label for="username">Your Name:</label>
+        <input type="text" id="username" placeholder="Enter your name">
+        <br>
+        <label for="peopleCount">Number of People:</label>
+        <input type="number" id="peopleCount" value="3" min="1">
+        <h2>Add Item</h2>
+        <label for="itemName">Item Name:</label>
+        <input type="text" id="itemName" placeholder="e.g., Rice">
+        <br>
+        <label for="itemCost">Cost:</label>
+        <input type="number" id="itemCost" placeholder="e.g., 500">
+        <br>
+        <button onclick="addItem()">Add Item</button>
+        <h2>Items</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Cost</th>
+                    <th>Added By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="itemTable"></tbody>
+        </table>
+        <h3>Total Cost: ₹<span id="totalCost">0</span></h3>
+        <h3>Cost Per Person: ₹<span id="costPerPerson">0</span></h3>
+    </div>
 
     <script>
+        const PASSWORD = "1234"; // Replace this with your desired password
+
+        // Function to check password
+        function checkPassword() {
+            const userInput = document.getElementById("passwordInput").value;
+            if (userInput === PASSWORD) {
+                document.getElementById("passwordSection").style.display = "none";
+                document.getElementById("mainContent").style.display = "block";
+            } else {
+                document.getElementById("errorMessage").style.display = "block";
+            }
+        }
+
         let items = JSON.parse(localStorage.getItem("items")) || [];
         let totalCost = parseFloat(localStorage.getItem("totalCost")) || 0;
 
@@ -94,8 +90,7 @@
                 const newItem = {
                     name: itemName,
                     cost: itemCost,
-                    addedBy: username,
-                    history: [`Added ₹${itemCost} by ${username}`]
+                    addedBy: username
                 };
                 items.push(newItem);
                 totalCost += itemCost;
@@ -107,42 +102,6 @@
                 document.getElementById("itemCost").value = "";
             } else {
                 alert("Please fill all fields!");
-            }
-        }
-
-        function editItem(index) {
-            const newCost = prompt("Enter the new cost:");
-            if (newCost && !isNaN(newCost)) {
-                const username = document.getElementById("username").value;
-                if (username === items[index].addedBy) {
-                    const oldCost = items[index].cost;
-                    items[index].cost = parseFloat(newCost);
-                    totalCost += items[index].cost - oldCost;
-                    items[index].history.push(`Edited cost from ₹${oldCost} to ₹${newCost} by ${username}`);
-
-                    saveData();
-                    updateUI();
-                } else {
-                    alert("You can only edit items you added!");
-                }
-            } else {
-                alert("Invalid cost entered!");
-            }
-        }
-
-        function deleteItem(index) {
-            const username = document.getElementById("username").value;
-            if (username === items[index].addedBy) {
-                const confirmDelete = confirm("Are you sure you want to delete this item?");
-                if (confirmDelete) {
-                    totalCost -= items[index].cost;
-                    items.splice(index, 1);
-
-                    saveData();
-                    updateUI();
-                }
-            } else {
-                alert("You can only delete items you added!");
             }
         }
 
@@ -158,17 +117,11 @@
             items.forEach((item, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>
-                        ${item.name}
-                        <div class="history">
-                            ${item.history.join("<br>")}
-                        </div>
-                    </td>
+                    <td>${item.name}</td>
                     <td>₹${item.cost.toFixed(2)}</td>
                     <td>${item.addedBy}</td>
                     <td>
-                        <button class="action-btn edit-btn" onclick="editItem(${index})">Edit</button>
-                        <button class="action-btn delete-btn" onclick="deleteItem(${index})">Delete</button>
+                        <button onclick="deleteItem(${index})">Delete</button>
                     </td>
                 `;
                 itemTable.appendChild(row);
@@ -178,9 +131,13 @@
             document.getElementById("costPerPerson").textContent = (totalCost / peopleCount).toFixed(2);
         }
 
-        document.getElementById("peopleCount").addEventListener("input", () => {
+        function deleteItem(index) {
+            totalCost -= items[index].cost;
+            items.splice(index, 1);
+
+            saveData();
             updateUI();
-        });
+        }
 
         updateUI();
     </script>
