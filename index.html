@@ -3,111 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ration Tracker</title>
+    <title>Room Expense Manager</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
         th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
         }
         th {
             background-color: #f4f4f4;
         }
-        input {
-            width: 100%;
-            padding: 5px;
+        .action-btn {
+            cursor: pointer;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .delete-btn {
+            background-color: #dc3545;
         }
     </style>
 </head>
 <body>
-    <h1>Ration Tracker</h1>
-    <p>तीन लोगों का राशन हिसाब-किताब ट्रैक करें।</p>
-
-    <form id="expense-form">
-        <label>
-            नाम:
-            <input type="text" id="name" placeholder="नाम दर्ज करें" required>
-        </label>
-        <br><br>
-        <label>
-            खर्च:
-            <input type="number" id="amount" placeholder="राशि दर्ज करें" required>
-        </label>
-        <br><br>
-        <button type="submit">जोड़ें</button>
-    </form>
-
-    <h2>हिसाब-किताब</h2>
+    <h1>Room Expense Manager</h1>
+    <label for="peopleCount">Number of People:</label>
+    <input type="number" id="peopleCount" value="3" min="1">
+    <br>
+    <h2>Add Item</h2>
+    <label for="itemName">Item Name:</label>
+    <input type="text" id="itemName" placeholder="e.g., Rice">
+    <br>
+    <label for="itemCost">Cost:</label>
+    <input type="number" id="itemCost" placeholder="e.g., 500">
+    <br>
+    <button onclick="addItem()">Add Item</button>
+    <h2>Items</h2>
     <table>
         <thead>
             <tr>
-                <th>नाम</th>
-                <th>खर्च</th>
+                <th>Item</th>
+                <th>Cost</th>
+                <th>Actions</th>
             </tr>
         </thead>
-        <tbody id="expense-table">
-        </tbody>
-        <tfoot>
-            <tr>
-                <td><strong>कुल खर्च</strong></td>
-                <td id="total-amount">₹0</td>
-            </tr>
-            <tr>
-                <td><strong>प्रति व्यक्ति</strong></td>
-                <td id="per-person">₹0</td>
-            </tr>
-        </tfoot>
+        <tbody id="itemTable"></tbody>
     </table>
+    <h3>Total Cost: ₹<span id="totalCost">0</span></h3>
+    <h3>Cost Per Person: ₹<span id="costPerPerson">0</span></h3>
 
     <script>
-        const form = document.getElementById('expense-form');
-        const expenseTable = document.getElementById('expense-table');
-        const totalAmount = document.getElementById('total-amount');
-        const perPerson = document.getElementById('per-person');
+        let items = [];
+        let totalCost = 0;
 
-        let expenses = [];
-        const totalPeople = 3; // 3 लोग
+        function addItem() {
+            const itemName = document.getElementById("itemName").value;
+            const itemCost = parseFloat(document.getElementById("itemCost").value);
+            const peopleCount = parseInt(document.getElementById("peopleCount").value);
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+            if (itemName && itemCost && peopleCount > 0) {
+                items.push({ name: itemName, cost: itemCost });
+                totalCost += itemCost;
 
-            const name = document.getElementById('name').value.trim();
-            const amount = parseFloat(document.getElementById('amount').value);
-
-            if (name && amount) {
-                expenses.push({ name, amount });
-                updateTable();
-                form.reset();
+                updateUI(peopleCount);
+                document.getElementById("itemName").value = "";
+                document.getElementById("itemCost").value = "";
+            } else {
+                alert("Please fill all fields correctly!");
             }
-        });
+        }
 
-        function updateTable() {
-            expenseTable.innerHTML = '';
-            let total = 0;
+        function updateUI(peopleCount) {
+            const itemTable = document.getElementById("itemTable");
+            itemTable.innerHTML = "";
 
-            expenses.forEach((expense) => {
-                total += expense.amount;
-
-                const row = document.createElement('tr');
+            items.forEach((item, index) => {
+                const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${expense.name}</td>
-                    <td>₹${expense.amount.toFixed(2)}</td>
+                    <td>${item.name}</td>
+                    <td>₹${item.cost.toFixed(2)}</td>
+                    <td>
+                        <button class="action-btn" onclick="editItem(${index})">Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteItem(${index})">Delete</button>
+                    </td>
                 `;
-                expenseTable.appendChild(row);
+                itemTable.appendChild(row);
             });
 
-            totalAmount.textContent = `₹${total.toFixed(2)}`;
-            perPerson.textContent = `₹${(total / totalPeople).toFixed(2)}`;
+            document.getElementById("totalCost").textContent = totalCost.toFixed(2);
+            document.getElementById("costPerPerson").textContent = (totalCost / peopleCount).toFixed(2);
         }
+
+        function editItem(index) {
+            const item = items[index];
+            const newName = prompt("Enter new name:", item.name);
+            const newCost = parseFloat(prompt("Enter new cost:", item.cost));
+
+            if (newName && newCost) {
+                totalCost -= item.cost;
+                items[index].name = newName;
+                items[index].cost = newCost;
+                totalCost += newCost;
+
+                const peopleCount = parseInt(document.getElementById("peopleCount").value);
+                updateUI(peopleCount);
+            } else {
+                alert("Invalid input!");
+            }
+        }
+
+        function deleteItem(index) {
+            const item = items[index];
+            totalCost -= item.cost;
+            items.splice(index, 1);
+
+            const peopleCount = parseInt(document.getElementById("peopleCount").value);
+            updateUI(peopleCount);
+        }
+
+        document.getElementById("peopleCount").addEventListener("input", () => {
+            const peopleCount = parseInt(document.getElementById("peopleCount").value);
+            if (peopleCount > 0) {
+                updateUI(peopleCount);
+            }
+        });
     </script>
 </body>
 </html>
